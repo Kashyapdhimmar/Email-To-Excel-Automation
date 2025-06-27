@@ -4,7 +4,7 @@ This project fetches `.xlsx` attachments from Gmail emails with a specific subje
 
 ## 🔧 Tools Used
 - Power Query (Excel)
-- Google Apps Script (Web App as JSON API)
+- Google Apps Script (Web App)
 - Base64 decoding with `Binary.FromText`
 - Data extraction with `Excel.Workbook`
 
