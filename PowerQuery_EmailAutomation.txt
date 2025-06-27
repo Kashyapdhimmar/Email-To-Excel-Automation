@@ -1,0 +1,24 @@
+let
+    Source = Json.Document(Web.Contents("https://script.google.com/macros/s/AKfycbyeB_ENBQ5SncTZ5SP1ObrPBg3mrLwkCFzkW8zxa63BQWVqYI_WuCyUiQaAYRF0wrBEUw/exec")),
+    #"Converted to Table" = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"EmailDate", "From", "Subject", "FileName", "MimeType", "Binary"}, {"Column1.EmailDate", "Column1.From", "Column1.Subject", "Column1.FileName", "Column1.MimeType", "Column1.Binary"}),
+    #"Filtered Rows" = Table.SelectRows(#"Expanded Column1", each Text.Contains([Column1.FileName], ".xlsx")),
+    #"Filtered Rows1" = Table.SelectRows(#"Filtered Rows", each Text.Contains([Column1.Subject], "Daily Sales Report", Comparer.OrdinalIgnoreCase)),
+    #"Added Custom" = Table.AddColumn(#"Filtered Rows1", "Custom", each Binary.FromText([Column1.Binary], BinaryEncoding.Base64)),
+    #"Added Custom1" = Table.AddColumn(#"Added Custom", "Custom.1", each Excel.Workbook([Custom])),
+    #"Expanded Custom.1" = Table.ExpandTableColumn(#"Added Custom1", "Custom.1", {"Name", "Data", "Item", "Kind", "Hidden"}, {"Custom.1.Name", "Custom.1.Data", "Custom.1.Item", "Custom.1.Kind", "Custom.1.Hidden"}),
+    #"Removed Other Columns" = Table.SelectColumns(#"Expanded Custom.1", {"Custom.1.Data"}),
+    #"Expanded Custom.1.Data" = Table.ExpandTableColumn(#"Removed Other Columns", "Custom.1.Data", {"Column1", "Column2", "Column3", "Column4", "Column5", "Column6", "Column7", "Column8"}, {"Custom.1.Data.Column1", "Custom.1.Data.Column2", "Custom.1.Data.Column3", "Custom.1.Data.Column4", "Custom.1.Data.Column5", "Custom.1.Data.Column6", "Custom.1.Data.Column7", "Custom.1.Data.Column8"}),
+    #"Promoted Headers" = Table.PromoteHeaders(#"Expanded Custom.1.Data", [PromoteAllScalars=true]),
+    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {{"Order Number", type text}, {"Customer Name", type text}, {"City", type text}, {"Product", type text}, {"Category", type text}, {"Payment Date", type any}, {"Quantity", type any}, {"Sales Amount", type any}}),
+    #"Filtered Rows2" = Table.SelectRows(#"Changed Type", each ([Order Number] <> "Order Number")),
+    
+    // ✅ Clean extra spaces in multiple columns
+    #"Cleaned Columns" = Table.TransformColumns(#"Filtered Rows2", {
+        {"Customer Name", each Text.Combine(List.Select(Text.Split(Text.Trim(_), " "), each _ <> ""), " "), type text},
+        {"City", each Text.Combine(List.Select(Text.Split(Text.Trim(_), " "), each _ <> ""), " "), type text},
+        {"Product", each Text.Combine(List.Select(Text.Split(Text.Trim(_), " "), each _ <> ""), " "), type text}
+    })
+
+in
+    #"Cleaned Columns"
